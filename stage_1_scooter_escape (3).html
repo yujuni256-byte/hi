@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>등교길 킥보드 탈출작전! (Stage 1)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #070b14;
+            font-family: 'Pretendard', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        #game-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .phone-shadow {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(59, 130, 246, 0.4);
+        }
+
+        @keyframes gameOverScreenShake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-8px, 6px) rotate(-1deg); }
+            40% { transform: translate(8px, -5px) rotate(1deg); }
+            60% { transform: translate(-6px, -4px) rotate(-0.5deg); }
+            80% { transform: translate(4px, 4px) rotate(0.5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        .game-over-shake {
+            animation: gameOverScreenShake 0.5s ease-in-out;
+        }
+
+        @keyframes modalPopIn {
+            from { opacity: 0; transform: scale(0.85) translateY(15px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-animated {
+            animation: modalPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden text-white select-none">
+
+    <!-- 3D WebGL Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Start Overlay Screen -->
+    <div id="modal-start" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -left-12 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-blue-600/20 rounded-full blur-2xl"></div>
+            
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl mb-4 shadow-lg shadow-cyan-500/30">
+                <i class="fa-solid fa-person-biking text-3xl text-white"></i>
+            </div>
+            
+            <h1 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 mb-2">
+                지각 위기! 킥보드 탈출
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-300 font-semibold mb-6">
+                네비게이션을 따라서 90초 내로 학교 정문까지 무사히 도달하세요!
+            </p>
+
+            <div class="bg-slate-800/80 rounded-xl p-4 text-left text-xs text-slate-300 space-y-2 mb-6 border border-slate-700">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded font-mono font-bold">조작법</span>
+                    <span>하단 버튼 / WASD / 터치 드래그로 화면 회전</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-green-500/20 text-green-400 rounded font-mono font-bold">📱 AI 전화</span>
+                    <span>인도 진입 후 수락! 핑계 답장 성공 시 +15초!</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded font-mono font-bold">🚨 인도/건물</span>
+                    <span>인도 5초 질주 시 경찰 단속, 건물 충돌 주의!</span>
+                </div>
+            </div>
+
+            <button id="btn-start-game" type="button" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold rounded-2xl text-base sm:text-lg shadow-lg shadow-cyan-500/40 transition-all cursor-pointer active:scale-95 relative z-[1010]">
+                킥보드 출발하기!
+            </button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div id="hud-layer" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-6">
+        <!-- Top Bar -->
+        <div class="flex items-start justify-between w-full">
+            <div class="glass-panel p-2.5 sm:p-4 rounded-2xl flex items-center gap-2.5 sm:gap-4 text-white">
+                <div class="flex flex-col">
+                    <span class="text-[9px] sm:text-xs text-cyan-400 font-bold uppercase tracking-wider">학교까지</span>
+                    <span class="text-lg sm:text-3xl font-black font-mono"><span id="hud-distance">15.0</span> <span class="text-[10px] sm:text-xs">km</span></span>
+                </div>
+                <div class="h-6 sm:h-8 w-[1px] bg-white/20"></div>
+                <div class="flex flex-col">
+                    <span class="text-[9px] sm:text-xs text-yellow-400 font-bold uppercase tracking-wider">현재 속도</span>
+                    <span class="text-lg sm:text-3xl font-black font-mono"><span id="hud-speed">0</span> <span class="text-[10px] sm:text-xs">km/h</span></span>
+                </div>
+            </div>
+
+            <!-- Center 90s Timer HUD -->
+            <div class="glass-panel px-3 py-1.5 sm:px-6 sm:py-3 rounded-2xl flex flex-col items-center border-2 border-red-500/50 shadow-lg shadow-red-500/20 relative" id="timer-hud-panel">
+                <span class="text-[9px] sm:text-xs font-bold text-red-400 tracking-widest uppercase">⏰ 남은 시간</span>
+                <span class="text-xl sm:text-4xl font-black font-mono text-red-500 animate-pulse" id="hud-timer">90.0<span class="text-xs">s</span></span>
+                <div id="time-bonus-popup" class="hidden absolute -bottom-6 bg-emerald-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full shadow-lg border border-emerald-300 animate-bounce">
+                    +15s 추가! 🎁
+                </div>
+            </div>
+
+            <!-- MiniMap GPS Canvas -->
+            <div class="glass-panel p-1.5 sm:p-2 rounded-2xl flex flex-col items-center">
+                <span class="text-[8px] sm:text-[9px] font-bold text-slate-300 mb-0.5">네비게이션</span>
+                <canvas id="minimap" width="65" height="65" class="rounded-xl border border-slate-600/50 bg-slate-900 sm:w-20 sm:h-20"></canvas>
+            </div>
+        </div>
+
+        <!-- 💦 웅덩이 미끄러짐 경고 알림 -->
+        <div id="puddle-warning" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-cyan-500/90 text-slate-950 font-black text-xs sm:text-sm px-4 py-1.5 rounded-full border border-cyan-200 shadow-xl animate-bounce z-20">
+            💦 빗물 웅덩이! 조작 방향 반전!
+        </div>
+
+        <!-- Touch Controls for Mobile/On-Screen -->
+        <div class="pointer-events-auto flex justify-between items-end w-full mb-1 sm:mb-4 px-1 pb-safe">
+            <div class="flex gap-2 sm:gap-3">
+                <button id="btn-left" class="w-14 h-14 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-2xl sm:text-3xl shadow-2xl active:scale-90 transition-all select-none">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button id="btn-right" class="w-14 h-14 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-2xl sm:text-3xl shadow-2xl active:scale-90 transition-all select-none">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+            <div class="flex gap-2 sm:gap-3">
+                <button id="btn-brake" class="w-14 h-14 sm:w-20 sm:h-20 bg-red-600/90 active:bg-red-700 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-sm sm:text-lg font-black shadow-2xl active:scale-90 transition-all select-none">
+                    STOP
+                </button>
+                <button id="btn-accel" class="w-16 h-16 sm:w-24 sm:h-24 bg-emerald-500/90 active:bg-emerald-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-xl sm:text-2xl font-black shadow-2xl active:scale-90 transition-all select-none">
+                    GO!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smartphone Call UI Container -->
+    <div id="phone-container" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[900] w-[92vw] max-w-sm bg-slate-900/95 border-4 border-slate-700 rounded-[32px] p-4 text-white phone-shadow transition-all">
+        <div class="flex justify-center mb-2">
+            <div class="w-16 h-1.5 bg-slate-700 rounded-full"></div>
+        </div>
+
+        <div id="phone-screen-incoming" class="flex flex-col items-center py-3 text-center">
+            <div class="relative mb-2">
+                <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-red-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+                    👨‍🏫
+                </div>
+                <div class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">!</div>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-100">담임 선생님</h3>
+            <p class="text-xs text-red-400 font-semibold mb-1 animate-pulse">전화가 오고 있습니다...</p>
+            <p class="text-[11px] text-slate-400 mb-1">제한시간: <span id="phone-timer" class="text-red-400 font-extrabold font-mono text-xs">10.0</span>초</p>
+            <p id="phone-location-warning" class="text-[10px] text-yellow-400 font-bold mb-2 hidden">⚠️ 차도에서는 전화를 받을 수 없습니다! 인도로 이동하세요!</p>
+
+            <div id="slider-track" class="relative w-full h-12 bg-slate-800 rounded-full border border-slate-700 p-1 flex items-center overflow-hidden">
+                <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-300 pointer-events-none">
+                    수락하려면 오른쪽 밀기 <span>&gt;&gt;&gt;</span>
+                </div>
+                <div id="slider-handle" class="relative z-10 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white cursor-pointer shadow-md transition-transform">
+                    <i class="fa-solid fa-phone text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="phone-screen-active" class="hidden flex flex-col h-80">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">👨‍🏫</span>
+                    <div>
+                        <div class="text-xs font-extrabold">담임 선생님 (AI)</div>
+                        <div class="text-[10px] text-green-400 font-semibold">통화 중...</div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="text-xs font-mono font-extrabold text-red-400 bg-red-950/60 px-2 py-0.5 rounded-md border border-red-500/40 animate-pulse">
+                        ⏱️ <span id="reply-timer-display">18.0</span>s
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-box" class="flex-1 overflow-y-auto space-y-2 p-1 text-xs mb-2"></div>
+
+            <div id="hint-box" class="bg-slate-800/90 border border-cyan-500/40 rounded-xl p-2 text-[11px] text-cyan-300 font-semibold mb-2">
+                💡 <span class="font-bold text-yellow-300">답안:</span> <span id="hint-text" class="text-white font-bold underline">"죄송합니다 곧 도착해요"</span>
+            </div>
+
+            <form id="chat-form" class="flex gap-2 border-t border-slate-800 pt-2">
+                <input id="chat-input" type="text" placeholder="예시 답안 입력..." autocomplete="off" class="flex-1 bg-slate-800 text-xs text-white px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-500">
+                <button type="submit" id="btn-chat-send" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-2 rounded-xl font-extrabold transition-all">전송</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Game Over / Victory Modal -->
+    <div id="modal-end" class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div id="modal-end-content" class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-center shadow-2xl modal-animated">
+            <div id="end-icon" class="text-5xl mb-3">🚨</div>
+            <h2 id="end-title" class="text-2xl font-black text-white mb-2">게임 오버</h2>
+            <p id="end-msg" class="text-xs sm:text-sm text-slate-300 mb-6">지각 처리되었습니다!</p>
+            <button id="btn-retry" type="button" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold rounded-2xl text-base shadow-lg cursor-pointer active:scale-95 transition-all">
+                다시 시도하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const TOTAL_DISTANCE = 15.0;
+        let gameActive = false;
+        let isGameOverAnimating = false;
+        let gameOverCamAngle = 0;
+        let distanceRemaining = TOTAL_DISTANCE;
+        let currentSpeed = 0;
+        const MAX_SPEED = 120;
+
+        let matchTimeRemaining = 90.0;
+        let sidewalkRideTimer = 0.0;
+
+        const schoolGatePos = { x: -850, z: -1400 };
+
+        let playerX = 0;
+        let playerZ = 0;
+        let cameraLookYaw = 0;
+        let cameraLookPitch = 0;
+        let scooterLeanAngle = 0;
+
+        let isPointerDragging = false;
+        let previousPointerX = 0;
+        let previousPointerY = 0;
+
+        const keys = { w: false, s: false, a: false, d: false };
+
+        let phoneActive = false;
+        let phoneTimer = 10.0;
+        let phoneActiveTimer = 18.0;
+        let phoneTurn = 1;
+        let phoneCooldownTimer = 5.0;
+
+        const initialHints = [
+            { 
+                hint1: "할머니가 짐을 옮겨달라 하셔서요", 
+                keywords: ["할머니", "짐", "옮겨"], 
+                reply: "착한 일 한 건 장하지만 등교 시간에 그러면 어떡하니! 핑계 대지 말고 3분 내로 뛰어와라!" 
+            },
+            { 
+                hint1: "어머니가 빨래가 안 말라서 기다리랬어요", 
+                keywords: ["어머니", "빨래", "말라"], 
+                reply: "빨래 덜 마른 거랑 너 등교가 무슨 상관이야! 말도 안 되는 소리 하지 말고 당장 뛰어와!" 
+            },
+            { 
+                hint1: "버스 기사님이 어디 갔다오셔서 늦었어요", 
+                keywords: ["버스", "기사", "갔다"], 
+                reply: "기사님이 어디를 갔다 와! 핑계 댈 걸 대야지, 1초라도 늦으면 바로 지각 처리다!" 
+            },
+            { 
+                hint1: "알람 소리를 못 들어서 늦었어요", 
+                keywords: ["알람", "소리", "못", "들"], 
+                reply: "매번 알람 타령이구나! 당장 킥보드 전속력으로 밟아서 뛰어와!" 
+            },
+            { 
+                hint1: "교복을 다른 학년 거랑 바꿔 입어서 다시 입고 오느라 늦었어요", 
+                keywords: ["교복", "바꿔", "학년", "입"], 
+                reply: "교복을 잘못 입는 사람이 어디 있니! 핑계 대지 말고 1초라도 빨리 튀어와!" 
+            },
+            { 
+                hint1: "길 가다 할머니를 도와드리느라 늦었습니다", 
+                keywords: ["할머니", "도와", "길"], 
+                reply: "착한 일 한 건 장하지만 등교 시간에 그러면 어떡하니! 얼른 뛰어오렴!" 
+            }
+        ];
+        
+        let remainingHints = [...initialHints];
+        const defaultFallbackHint = {
+            hint1: "죄송합니다 빨리 가겠습니다",
+            keywords: ["죄송", "빨리", "가겠"],
+            reply: "말만 하지 말고 1초라도 빨리 튀어와라!"
+        };
+
+        let currentHintSet = initialHints[0];
+
+        let scene, camera, renderer;
+        let playerGroup, handlebarMesh;
+        let buildingBounds = [];
+
+        let obstaclesCones = [];
+        let obstaclesPedestrians = [];
+        let obstaclesPuddles = [];
+        let slipTimer = 0;
+
+        const roadSegments = [
+            { p1: {x: 0, z: 0}, p2: {x: 0, z: -350} },
+            { p1: {x: 0, z: -350}, p2: {x: -400, z: -350} },
+            { p1: {x: -400, z: -350}, p2: {x: -400, z: -800} },
+            { p1: {x: -400, z: -800}, p2: {x: -850, z: -800} },
+            { p1: {x: -850, z: -800}, p2: {x: -850, z: -1400} }
+        ];
+
+        function getViewportSize() {
+            return {
+                w: window.innerWidth || document.documentElement.clientWidth || 360,
+                h: window.innerHeight || document.documentElement.clientHeight || 640
+            };
+        }
+
+        function isOnSidewalk(px, pz) {
+            const dist = getDistanceToRoads(px, pz);
+            return dist >= 8.0 && dist <= 12.0;
+        }
+
+        function getDistanceToRoads(px, pz) {
+            let minDist = Infinity;
+            for (let seg of roadSegments) {
+                const l2 = (seg.p2.x - seg.p1.x)**2 + (seg.p2.z - seg.p1.z)**2;
+                if (l2 === 0) continue;
+                let t = ((px - seg.p1.x) * (seg.p2.x - seg.p1.x) + (pz - seg.p1.z) * (seg.p2.z - seg.p1.z)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                const projX = seg.p1.x + t * (seg.p2.x - seg.p1.x);
+                const projZ = seg.p1.z + t * (seg.p2.z - seg.p1.z);
+                const dist = Math.hypot(px - projX, pz - projZ);
+                if (dist < minDist) minDist = dist;
+            }
+            return minDist;
+        }
+
+        function levenshteinDistance(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        function initThree() {
+            const canvas = document.getElementById('game-canvas');
+            const size = getViewportSize();
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x7dd3fc);
+            scene.fog = new THREE.FogExp2(0x7dd3fc, 0.002);
+
+            const isMobile = size.w < size.h;
+            const defaultFov = isMobile ? 80 : 70;
+            camera = new THREE.PerspectiveCamera(defaultFov, size.w / size.h, 0.1, 1000);
+
+            // Create WebGL Renderer safely across mobile browsers
+            try {
+                renderer = new THREE.WebGLRenderer({ 
+                    canvas: canvas, 
+                    antialias: false,
+                    alpha: false,
+                    precision: 'lowp',
+                    powerPreference: 'high-performance'
+                });
+            } catch (e) {
+                try {
+                    const ctx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    renderer = new THREE.WebGLRenderer({ canvas: canvas, context: ctx });
+                } catch (err) {
+                    console.error("WebGL error", err);
+                }
+            }
+
+            if (renderer) {
+                renderer.setSize(size.w, size.h, false);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+            }
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.0);
+            sunLight.position.set(80, 150, 80);
+            scene.add(sunLight);
+
+            playerGroup = new THREE.Group();
+            scene.add(playerGroup);
+            playerGroup.add(camera);
+            camera.position.set(0, 1.15, 0);
+
+            createDetailedHandlebar();
+            createComplexRoadNetwork();
+            spawnDynamicObstacles();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 200));
+
+            setupPointerLook();
+            setupPhoneSwipe();
+            setupChatForm();
+        }
+
+        function setupPointerLook() {
+            const canvas = document.getElementById('game-canvas');
+
+            const handlePointerDown = (clientX, clientY) => {
+                isPointerDragging = true;
+                previousPointerX = clientX;
+                previousPointerY = clientY;
+            };
+
+            const handlePointerMove = (clientX, clientY) => {
+                if (!isPointerDragging) return;
+                const deltaX = clientX - previousPointerX;
+                const deltaY = clientY - previousPointerY;
+
+                cameraLookYaw -= deltaX * 0.004;
+                cameraLookPitch -= deltaY * 0.004;
+                cameraLookPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, cameraLookPitch));
+
+                previousPointerX = clientX;
+                previousPointerY = clientY;
+            };
+
+            canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+            window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+            window.addEventListener('mouseup', () => { isPointerDragging = false; });
+
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) {
+                    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+
+            canvas.addEventListener('touchend', () => { isPointerDragging = false; });
+        }
+
+        function createDetailedHandlebar() {
+            handlebarMesh = new THREE.Group();
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+            const metallicMat = new THREE.MeshStandardMaterial({ color: 0xc084fc, metalness: 0.8, roughness: 0.2 });
+
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 8), blackMat);
+            stem.position.set(0, -0.55, -0.55);
+            stem.rotation.x = Math.PI / 8;
+            handlebarMesh.add(stem);
+
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.75, 8), metallicMat);
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(0, -0.22, -0.65);
+            handlebarMesh.add(bar);
+
+            [-0.33, 0.33].forEach(xPos => {
+                const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.12, 8), blackMat);
+                grip.rotation.z = Math.PI / 2;
+                grip.position.set(xPos, -0.22, -0.65);
+                handlebarMesh.add(grip);
+            });
+
+            const displayBg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.09, 0.03), blackMat);
+            displayBg.position.set(0, -0.18, -0.63);
+            displayBg.rotation.x = Math.PI / 6;
+            handlebarMesh.add(displayBg);
+
+            const displayScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.07), new THREE.MeshBasicMaterial({ color: 0x06b6d4 }));
+            displayScreen.position.set(0, -0.178, -0.613);
+            displayScreen.rotation.x = Math.PI / 6;
+            handlebarMesh.add(displayScreen);
+
+            [-0.36, 0.36].forEach(side => {
+                const mirrorStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.15, 6), metallicMat);
+                mirrorStem.position.set(side, -0.12, -0.65);
+                mirrorStem.rotation.z = side * -Math.PI / 6;
+                handlebarMesh.add(mirrorStem);
+
+                const mirrorGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 8), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
+                mirrorGlass.rotation.x = Math.PI / 2;
+                mirrorGlass.position.set(side * 1.15, -0.07, -0.65);
+                handlebarMesh.add(mirrorGlass);
+            });
+
+            camera.add(handlebarMesh);
+        }
+
+        function createComplexRoadNetwork() {
+            buildingBounds = [];
+
+            createRoadWithScenery(0, -175, 16, 350, false);          
+            createRoadWithScenery(-200, -350, 400, 16, true);        
+            createRoadWithScenery(-400, -575, 16, 450, false);        
+            createRoadWithScenery(-625, -800, 450, 16, true);        
+            createRoadWithScenery(-850, -1100, 16, 600, false);       
+
+            const intersections = [
+                {x: 0, z: -350},
+                {x: -400, z: -350},
+                {x: -400, z: -800},
+                {x: -850, z: -800}
+            ];
+            
+            const cornerOverlayMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 });
+            
+            intersections.forEach(pos => {
+                const cornerOverlay = new THREE.Mesh(new THREE.PlaneGeometry(18.0, 18.0), cornerOverlayMat);
+                cornerOverlay.rotation.x = -Math.PI / 2;
+                cornerOverlay.position.set(pos.x, 0.45, pos.z);
+                scene.add(cornerOverlay);
+            });
+
+            createDetailedSchoolCampus();
+        }
+
+        function createDetailedSchoolCampus() {
+            const schoolGroup = new THREE.Group();
+            schoolGroup.position.set(schoolGatePos.x, 0, schoolGatePos.z);
+
+            const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(80, 32, 28), new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 }));
+            mainBuilding.position.set(0, 16, -25);
+            schoolGroup.add(mainBuilding);
+
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            for (let floor = 1; floor <= 3; floor++) {
+                for (let w = -32; w <= 32; w += 8) {
+                    const win = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 4), windowMat);
+                    win.position.set(w, floor * 7 + 3, -10.9);
+                    schoolGroup.add(win);
+                }
+            }
+
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4 });
+            const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(3, 10, 3), pillarMat);
+            leftPillar.position.set(-12, 5, 5);
+            schoolGroup.add(leftPillar);
+
+            const rightPillar = new THREE.Mesh(new THREE.BoxGeometry(3, 10, 3), pillarMat);
+            rightPillar.position.set(12, 5, 5);
+            schoolGroup.add(rightPillar);
+
+            const arch = new THREE.Mesh(new THREE.BoxGeometry(27, 2.5, 1.5), new THREE.MeshStandardMaterial({ color: 0x1e3a8a }));
+            arch.position.set(0, 9.5, 5);
+            schoolGroup.add(arch);
+
+            const barrier = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 14, 8), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+            barrier.rotation.z = Math.PI / 2;
+            barrier.position.set(0, 2.2, 5);
+            schoolGroup.add(barrier);
+
+            const goalZone = new THREE.Mesh(new THREE.PlaneGeometry(24, 18), new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.45 }));
+            goalZone.rotation.x = -Math.PI / 2;
+            goalZone.position.set(0, 0.05, -2);
+            schoolGroup.add(goalZone);
+
+            buildingBounds.push({
+                minX: schoolGatePos.x - 42,
+                maxX: schoolGatePos.x + 42,
+                minZ: schoolGatePos.z - 40,
+                maxZ: schoolGatePos.z - 5
+            });
+
+            scene.add(schoolGroup);
+        }
+
+        function spawnDynamicObstacles() {
+            obstaclesCones = [];
+            obstaclesPedestrians = [];
+            obstaclesPuddles = [];
+
+            const coneMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 });
+            const pedMat = new THREE.MeshStandardMaterial({ color: 0xec4899 });
+            const puddleMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6 });
+
+            roadSegments.forEach(seg => {
+                const isHoriz = Math.abs(seg.p1.z - seg.p2.z) < 1;
+                const len = Math.hypot(seg.p2.x - seg.p1.x, seg.p2.z - seg.p1.z);
+                const steps = Math.floor(len / 45);
+
+                for (let i = 1; i < steps; i++) {
+                    const ratio = i / steps;
+                    const baseX = seg.p1.x + (seg.p2.x - seg.p1.x) * ratio;
+                    const baseZ = seg.p1.z + (seg.p2.z - seg.p1.z) * ratio;
+
+                    const coneOffset = (Math.random() - 0.5) * 10;
+                    const coneX = isHoriz ? baseX : baseX + coneOffset;
+                    const coneZ = isHoriz ? baseZ + coneOffset : baseZ;
+
+                    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 8), coneMat);
+                    cone.position.set(coneX, 0.6, coneZ);
+                    scene.add(cone);
+                    obstaclesCones.push(cone);
+
+                    if (i % 2 === 0) {
+                        const pedGroup = new THREE.Group();
+                        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), pedMat);
+                        body.position.y = 0.75;
+                        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25), pedMat);
+                        head.position.y = 1.7;
+                        pedGroup.add(body);
+                        pedGroup.add(head);
+
+                        const pedX = isHoriz ? baseX : baseX + (Math.random() > 0.5 ? 9.5 : -9.5);
+                        const pedZ = isHoriz ? baseZ + (Math.random() > 0.5 ? 9.5 : -9.5) : baseZ;
+                        pedGroup.position.set(pedX, 0.1, pedZ);
+
+                        scene.add(pedGroup);
+                        obstaclesPedestrians.push({
+                            mesh: pedGroup,
+                            originX: pedX,
+                            originZ: pedZ,
+                            dir: 1,
+                            isHoriz: isHoriz
+                        });
+                    }
+
+                    if (i % 3 === 0) {
+                        const puddle = new THREE.Mesh(new THREE.CircleGeometry(3.2, 16), puddleMat);
+                        puddle.rotation.x = -Math.PI / 2;
+                        puddle.position.set(baseX + (Math.random() - 0.5) * 6, 0.08, baseZ + (Math.random() - 0.5) * 6);
+                        scene.add(puddle);
+                        obstaclesPuddles.push(puddle);
+                    }
+                }
+            });
+        }
+
+        function createRoadWithScenery(x, z, width, length, isHorizontal) {
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(width, length), new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 }));
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(x, 0.01, z);
+            scene.add(road);
+
+            const whiteMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+            const stripeCount = Math.floor((isHorizontal ? width : length) / 20);
+            for (let s = -stripeCount / 2; s <= stripeCount / 2; s++) {
+                const laneLine = isHorizontal
+                    ? new THREE.Mesh(new THREE.PlaneGeometry(8, 0.6), whiteMat)
+                    : new THREE.Mesh(new THREE.PlaneGeometry(0.6, 8), whiteMat);
+                laneLine.rotation.x = -Math.PI / 2;
+                if (!isHorizontal) laneLine.position.set(x, 0.02, z + s * 20);
+                else laneLine.position.set(x + s * 20, 0.02, z);
+                scene.add(laneLine);
+            }
+
+            const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
+            const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x54382b, roughness: 0.9 });
+            const treeLeavesMat1 = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
+            const treeLeavesMat2 = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.5 });
+            const benchMat = new THREE.MeshStandardMaterial({ color: 0xb45309 });
+
+            const intersections = [
+                {x: 0, z: -350},
+                {x: -400, z: -350},
+                {x: -400, z: -800},
+                {x: -850, z: -800}
+            ];
+
+            const isNearIntersection = (px, pz) => {
+                return intersections.some(pos => Math.hypot(px - pos.x, pz - pos.z) < 12);
+            };
+
+            [-1, 1].forEach(side => {
+                const swGeo = isHorizontal 
+                    ? new THREE.BoxGeometry(width, 0.3, 3.8) 
+                    : new THREE.BoxGeometry(3.8, 0.3, length);
+                const swMesh = new THREE.Mesh(swGeo, sidewalkMat);
+                if (!isHorizontal) {
+                    swMesh.position.set(x + side * (width / 2 + 1.9), 0.15, z);
+                } else {
+                    swMesh.position.set(x, 0.15, z + side * (length / 2 + 1.9));
+                }
+                scene.add(swMesh);
+
+                const decorCount = Math.floor((isHorizontal ? width : length) / 35);
+                for (let d = -decorCount / 2; d <= decorCount / 2; d++) {
+                    const treeOffset = side * (width / 2 + 1.9);
+                    const posX = !isHorizontal ? x + treeOffset : x + d * 35;
+                    const posZ = !isHorizontal ? z + d * 35 : z + treeOffset;
+
+                    if (isNearIntersection(posX, posZ)) continue;
+
+                    const treeGroup = new THREE.Group();
+                    
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, 3.2, 8), treeTrunkMat);
+                    trunk.position.y = 1.6;
+                    treeGroup.add(trunk);
+
+                    const foliageBottom = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.0, 8), treeLeavesMat1);
+                    foliageBottom.position.y = 3.6;
+                    treeGroup.add(foliageBottom);
+
+                    const foliageTop = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.2, 8), treeLeavesMat2);
+                    foliageTop.position.set(0, 4.8, 0);
+                    treeGroup.add(foliageTop);
+
+                    treeGroup.position.set(posX, 0.15, posZ);
+                    scene.add(treeGroup);
+
+                    const bench = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 0.8), benchMat);
+                    bench.position.set(posX + (isHorizontal ? 0 : 0.5), 0.4, posZ + (isHorizontal ? 0.5 : 0));
+                    scene.add(bench);
+                }
+            });
+
+            const step = 28;
+            const count = Math.floor((isHorizontal ? width : length) / step);
+            const colors = [0x475569, 0x334155, 0x0284c7, 0x0369a1, 0x4f46e5, 0x1e293b, 0x0f172a];
+
+            for (let i = -count / 2; i <= count / 2; i++) {
+                [-1, 1].forEach(side => {
+                    [25.0, 46.0].forEach(distOffset => {
+                        let bx = 0, bz = 0;
+                        if (!isHorizontal) {
+                            bx = x + side * distOffset;
+                            bz = z + i * step;
+                        } else {
+                            bx = x + i * step;
+                            bz = z + side * distOffset;
+                        }
+
+                        if (getDistanceToRoads(bx, bz) < 20.0) return;
+
+                        const h = 20 + Math.random() * 35;
+                        const bMat = new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)], roughness: 0.4 });
+                        const bMesh = new THREE.Mesh(new THREE.BoxGeometry(20, h, 20), bMat);
+                        bMesh.position.set(bx, h / 2, bz);
+                        scene.add(bMesh);
+
+                        buildingBounds.push({
+                            minX: bx - 10.5,
+                            maxX: bx + 10.5,
+                            minZ: bz - 10.5,
+                            maxZ: bz + 10.5
+                        });
+                    });
+                });
+            }
+        }
+
+        function setupPhoneSwipe() {
+            const handle = document.getElementById('slider-handle');
+            const track = document.getElementById('slider-track');
+            let isSwiping = false;
+            let startX = 0;
+
+            const onStart = (e) => {
+                isSwiping = true;
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+            };
+
+            const onMove = (e) => {
+                if (!isSwiping) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const diff = currentX - startX;
+                const maxTranslate = track.offsetWidth - handle.offsetWidth - 8;
+                const translateX = Math.max(0, Math.min(diff, maxTranslate));
+
+                handle.style.transform = `translateX(${translateX}px)`;
+
+                if (translateX >= maxTranslate - 5) {
+                    isSwiping = false;
+                    acceptPhoneCall();
+                }
+            };
+
+            const onEnd = () => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                handle.style.transform = `translateX(0px)`;
+            };
+
+            handle.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            handle.addEventListener('touchstart', onStart, { passive: true });
+            window.addEventListener('touchmove', onMove, { passive: true });
+            window.addEventListener('touchend', onEnd);
+        }
+
+        function triggerPhoneCall() {
+            if (phoneActive || phoneCooldownTimer > 0) return;
+            phoneActive = true;
+            phoneTimer = 10.0;
+
+            if (remainingHints.length > 0) {
+                const randomIndex = Math.floor(Math.random() * remainingHints.length);
+                currentHintSet = remainingHints.splice(randomIndex, 1)[0];
+            } else {
+                currentHintSet = defaultFallbackHint;
+            }
+
+            document.getElementById('phone-screen-incoming').classList.remove('hidden');
+            document.getElementById('phone-screen-active').classList.add('hidden');
+            document.getElementById('slider-handle').style.transform = 'translateX(0px)';
+            document.getElementById('phone-container').classList.remove('hidden');
+        }
+
+        function acceptPhoneCall() {
+            if (!isOnSidewalk(playerX, playerZ)) {
+                const warn = document.getElementById('phone-location-warning');
+                warn.classList.remove('hidden');
+                setTimeout(() => warn.classList.add('hidden'), 2500);
+                document.getElementById('slider-handle').style.transform = 'translateX(0px)';
+                return;
+            }
+
+            document.getElementById('phone-screen-incoming').classList.add('hidden');
+            document.getElementById('phone-screen-active').classList.remove('hidden');
+
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            phoneTurn = 1;
+            phoneActiveTimer = 18.0;
+
+            addChatMessage('teacher', `학생! 지금 어디야? 8시 58분인데 아직도 안 왔니?`);
+            document.getElementById('hint-text').innerText = `"${currentHintSet.hint1}"`;
+        }
+
+        function addChatMessage(sender, text) {
+            const chatBox = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[82%] px-3 py-2 rounded-2xl ${
+                sender === 'user'
+                    ? 'bg-cyan-600 text-white rounded-tr-none font-semibold'
+                    : 'bg-slate-800 text-slate-100 border border-slate-700 rounded-tl-none font-medium'
+            }`;
+            bubble.innerText = text;
+            msgDiv.appendChild(bubble);
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function setupChatForm() {
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('chat-input');
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = input.value.trim();
+                if (!text) return;
+
+                addChatMessage('user', text);
+                input.value = '';
+
+                const expected1 = currentHintSet.hint1.replace(/\s+/g, '');
+                const userTyped = text.replace(/\s+/g, '');
+                const dist1 = levenshteinDistance(userTyped, expected1);
+
+                const hasKeyword = currentHintSet.keywords.some(kw => text.includes(kw));
+                const isValid = (dist1 <= 4) || hasKeyword;
+
+                if (phoneTurn === 1) {
+                    if (isValid) {
+                        phoneTurn = 2;
+                        phoneActiveTimer = 18.0;
+
+                        matchTimeRemaining += 15.0;
+                        showTimeBonusPopup();
+
+                        setTimeout(() => {
+                            addChatMessage('teacher', `${currentHintSet.reply} (통화 종료)`);
+                            document.getElementById('hint-box').classList.add('hidden');
+
+                            setTimeout(() => {
+                                closePhoneCall();
+                            }, 2500);
+                        }, 800);
+                    } else {
+                        addChatMessage('teacher', `음? 거짓말인지 뭔지 알아들을 수가 없구나! 제대로 말해봐라!`);
+                    }
+                }
+            });
+        }
+
+        function showTimeBonusPopup() {
+            const popup = document.getElementById('time-bonus-popup');
+            popup.classList.remove('hidden');
+            setTimeout(() => popup.classList.add('hidden'), 2000);
+        }
+
+        function closePhoneCall() {
+            phoneActive = false;
+            phoneCooldownTimer = 15.0;
+            document.getElementById('phone-container').classList.add('hidden');
+            document.getElementById('hint-box').classList.remove('hidden');
+        }
+
+        function checkBuildingCollisions(newX, newZ) {
+            for (let b of buildingBounds) {
+                if (newX >= b.minX && newX <= b.maxX && newZ >= b.minZ && newZ <= b.maxZ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function updateGame(deltaTime) {
+            if (isGameOverAnimating) {
+                gameOverCamAngle += deltaTime * 1.5;
+                const camRadius = 8.0;
+                const camHeight = 3.5;
+
+                camera.position.x = playerGroup.position.x + Math.sin(gameOverCamAngle) * camRadius;
+                camera.position.z = playerGroup.position.z + Math.cos(gameOverCamAngle) * camRadius;
+                camera.position.y = camHeight;
+                camera.lookAt(playerGroup.position.x, 0.8, playerGroup.position.z);
+                return;
+            }
+
+            if (!gameActive) return;
+
+            matchTimeRemaining -= deltaTime;
+            if (matchTimeRemaining <= 0) {
+                matchTimeRemaining = 0;
+                gameOver('9시 정각입니다! 무단 지각 처리되었습니다! 🚨');
+                return;
+            }
+            document.getElementById('hud-timer').innerHTML = `${matchTimeRemaining.toFixed(1)}<span class="text-xs">s</span>`;
+
+            const currentlyOnSidewalk = isOnSidewalk(playerX, playerZ);
+            if (currentlyOnSidewalk && currentSpeed >= 5) {
+                sidewalkRideTimer += deltaTime;
+                if (sidewalkRideTimer >= 5.0) {
+                    gameOver('경찰: 인도 위 킥보드 연속 질주 단속 대상입니다! 🚨');
+                    return;
+                }
+            } else {
+                sidewalkRideTimer = Math.max(0, sidewalkRideTimer - deltaTime * 2.0);
+            }
+
+            if (slipTimer > 0) {
+                slipTimer -= deltaTime;
+                document.getElementById('puddle-warning').classList.remove('hidden');
+            } else {
+                document.getElementById('puddle-warning').classList.add('hidden');
+            }
+
+            if (keys.w) {
+                currentSpeed = Math.min(MAX_SPEED, currentSpeed + 55 * deltaTime);
+            } else if (keys.s) {
+                currentSpeed = Math.max(0, currentSpeed - 80 * deltaTime);
+            } else {
+                currentSpeed = Math.max(0, currentSpeed - 20 * deltaTime);
+            }
+
+            const size = getViewportSize();
+            const baseFov = size.w < size.h ? 80 : 70;
+            const targetFOV = baseFov + (currentSpeed / MAX_SPEED) * 20;
+            camera.fov += (targetFOV - camera.fov) * 0.1;
+            camera.updateProjectionMatrix();
+
+            let turnSpeed = (1.4 + (currentSpeed / MAX_SPEED) * 0.8) * deltaTime;
+            let moveDir = 0;
+
+            if (keys.a) moveDir = (slipTimer > 0) ? -1 : 1;
+            if (keys.d) moveDir = (slipTimer > 0) ? 1 : -1;
+
+            cameraLookYaw += moveDir * turnSpeed;
+
+            const targetLean = -moveDir * (0.08 + (currentSpeed / MAX_SPEED) * 0.12);
+            scooterLeanAngle += (targetLean - scooterLeanAngle) * 0.15;
+            handlebarMesh.rotation.z = scooterLeanAngle;
+
+            const moveDist = (currentSpeed * 1000 / 3600) * deltaTime;
+            const nextX = playerX - Math.sin(cameraLookYaw) * moveDist;
+            const nextZ = playerZ - Math.cos(cameraLookYaw) * moveDist;
+
+            if (checkBuildingCollisions(nextX, nextZ)) {
+                if (currentSpeed >= 55) {
+                    gameOver('💥 55km/h 이상 고속으로 건물에 충돌했습니다! (킥보드 파손)');
+                    return;
+                } else {
+                    currentSpeed = 0;
+                }
+            } else {
+                playerX = nextX;
+                playerZ = nextZ;
+            }
+
+            playerGroup.position.set(playerX, 0, playerZ);
+            playerGroup.rotation.y = cameraLookYaw;
+
+            obstaclesCones.forEach(cone => {
+                const dist = Math.hypot(playerX - cone.position.x, playerZ - cone.position.z);
+                if (dist < 1.0) {
+                    currentSpeed = Math.max(0, currentSpeed - 30);
+                    cone.position.y = -10;
+                }
+            });
+
+            obstaclesPedestrians.forEach(ped => {
+                if (ped.isHoriz) {
+                    ped.mesh.position.z += ped.dir * 1.2 * deltaTime;
+                    if (Math.abs(ped.mesh.position.z - ped.originZ) > 4.0) ped.dir *= -1;
+                } else {
+                    ped.mesh.position.x += ped.dir * 1.2 * deltaTime;
+                    if (Math.abs(ped.mesh.position.x - ped.originX) > 4.0) ped.dir *= -1;
+                }
+
+                const dist = Math.hypot(playerX - ped.mesh.position.x, playerZ - ped.mesh.position.z);
+                if (dist < 1.2) {
+                    gameOver('🚨 보행자 충돌 사고 발생! 안전운전 하세요!');
+                    return;
+                }
+            });
+
+            obstaclesPuddles.forEach(puddle => {
+                const dist = Math.hypot(playerX - puddle.position.x, playerZ - puddle.position.z);
+                if (dist < 2.5) {
+                    slipTimer = 1.5;
+                }
+            });
+
+            const distToGate = Math.hypot(playerX - schoolGatePos.x, playerZ - schoolGatePos.z);
+            distanceRemaining = (distToGate / 100).toFixed(1);
+
+            if (distToGate < 15.0) {
+                gameWin();
+                return;
+            }
+
+            if (phoneCooldownTimer > 0) phoneCooldownTimer -= deltaTime;
+            if (!phoneActive && phoneCooldownTimer <= 0 && Math.random() < 0.008) {
+                triggerPhoneCall();
+            }
+
+            if (phoneActive) {
+                if (document.getElementById('phone-screen-incoming').classList.contains('hidden') === false) {
+                    phoneTimer -= deltaTime;
+                    document.getElementById('phone-timer').innerText = Math.max(0, phoneTimer).toFixed(1);
+                    if (phoneTimer <= 0) {
+                        gameOver('👨‍🏫 선생님의 전화를 무시했습니다! (무단 지각 처리)');
+                        return;
+                    }
+                } else {
+                    phoneActiveTimer -= deltaTime;
+                    document.getElementById('reply-timer-display').innerText = Math.max(0, phoneActiveTimer).toFixed(1);
+                    if (phoneActiveTimer <= 0) {
+                        gameOver('👨‍🏫 선생님과의 통화 시간이 초과되어 거짓말이 통하지 않았습니다!');
+                        return;
+                    }
+                }
+            }
+
+            document.getElementById('hud-speed').innerText = Math.round(currentSpeed);
+            document.getElementById('hud-distance').innerText = distanceRemaining;
+            renderMinimap();
+        }
+
+        function renderMinimap() {
+            const canvas = document.getElementById('minimap');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+
+            roadSegments.forEach((seg, idx) => {
+                const x1 = (seg.p1.x - playerX) * 0.08;
+                const z1 = (seg.p1.z - playerZ) * 0.08;
+                const x2 = (seg.p2.x - playerX) * 0.08;
+                const z2 = (seg.p2.z - playerZ) * 0.08;
+
+                if (idx === 0) ctx.moveTo(x1, z1);
+                ctx.lineTo(x2, z2);
+            });
+            ctx.stroke();
+
+            const schoolX = (schoolGatePos.x - playerX) * 0.08;
+            const schoolZ = (schoolGatePos.z - playerZ) * 0.08;
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(schoolX, schoolZ, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function gameOver(msg) {
+            if (!gameActive || isGameOverAnimating) return;
+            gameActive = false;
+            isGameOverAnimating = true;
+            closePhoneCall();
+
+            const canvas = document.getElementById('game-canvas');
+            canvas.classList.add('game-over-shake');
+            setTimeout(() => canvas.classList.remove('game-over-shake'), 500);
+
+            scene.attach(camera);
+            gameOverCamAngle = cameraLookYaw;
+
+            setTimeout(() => {
+                document.getElementById('end-icon').innerText = '🚨';
+                document.getElementById('end-title').innerText = '게임 오버';
+                document.getElementById('end-msg').innerText = msg;
+                
+                const endContent = document.getElementById('modal-end-content');
+                endContent.classList.remove('modal-animated');
+                void endContent.offsetWidth;
+                endContent.classList.add('modal-animated');
+
+                document.getElementById('modal-end').classList.remove('hidden');
+            }, 800);
+        }
+
+        function gameWin() {
+            if (!gameActive) return;
+            gameActive = false;
+            closePhoneCall();
+            document.getElementById('end-icon').innerText = '🎉';
+            document.getElementById('end-title').innerText = '등교 성공!';
+            document.getElementById('end-msg').innerText = `8시 59분에 세이프! 무사히 학교에 도착했습니다!`;
+            
+            const endContent = document.getElementById('modal-end-content');
+            endContent.classList.remove('modal-animated');
+            void endContent.offsetWidth;
+            endContent.classList.add('modal-animated');
+
+            document.getElementById('modal-end').classList.remove('hidden');
+        }
+
+        function startGame() {
+            gameActive = true;
+            isGameOverAnimating = false;
+            matchTimeRemaining = 90.0;
+            sidewalkRideTimer = 0.0;
+            playerX = 0;
+            playerZ = 0;
+            currentSpeed = 0;
+            cameraLookYaw = 0;
+            cameraLookPitch = 0;
+            phoneCooldownTimer = 5.0;
+
+            remainingHints = [...initialHints];
+
+            playerGroup.add(camera);
+            camera.position.set(0, 1.15, 0);
+            camera.rotation.set(0, 0, 0);
+
+            const size = getViewportSize();
+            camera.fov = size.w < size.h ? 80 : 70;
+            camera.updateProjectionMatrix();
+
+            closePhoneCall();
+            document.getElementById('modal-start').classList.add('hidden');
+            document.getElementById('modal-end').classList.add('hidden');
+            document.getElementById('hud-layer').classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            const size = getViewportSize();
+            if (camera && renderer) {
+                camera.aspect = size.w / size.h;
+                camera.fov = size.w < size.h ? 80 : 70;
+                camera.updateProjectionMatrix();
+                renderer.setSize(size.w, size.h, false);
+            }
+        }
+
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 150));
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+        });
+
+        document.getElementById('btn-start-game').addEventListener('click', startGame);
+        document.getElementById('btn-retry').addEventListener('click', startGame);
+
+        const bindTouchBtn = (id, key) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            const startPress = (e) => {
+                if (e.cancelable) e.preventDefault();
+                keys[key] = true;
+            };
+            const endPress = (e) => {
+                if (e.cancelable) e.preventDefault();
+                keys[key] = false;
+            };
+
+            btn.addEventListener('touchstart', startPress, { passive: false });
+            btn.addEventListener('touchend', endPress, { passive: false });
+            btn.addEventListener('touchcancel', endPress, { passive: false });
+            btn.addEventListener('mousedown', startPress);
+            btn.addEventListener('mouseup', endPress);
+            btn.addEventListener('mouseleave', endPress);
+        };
+
+        bindTouchBtn('btn-accel', 'w');
+        bindTouchBtn('btn-brake', 's');
+        bindTouchBtn('btn-left', 'a');
+        bindTouchBtn('btn-right', 'd');
+
+        let lastTime = performance.now();
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now();
+            const deltaTime = Math.min(0.1, (now - lastTime) / 1000);
+            lastTime = now;
+
+            updateGame(deltaTime);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                initThree();
+                animate();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
