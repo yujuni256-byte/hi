@@ -14,24 +14,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800;900&display=swap');
         
         * {
-            box-sizing: border-box;
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
         }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #070b14;
+        body {
             font-family: 'Pretendard', sans-serif;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
-            position: fixed;
-            left: 0;
-            top: 0;
+            overflow: hidden;
+            background-color: #0f172a;
         }
 
         #game-canvas {
@@ -45,36 +38,39 @@
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
         
         .phone-shadow {
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(59, 130, 246, 0.3);
         }
 
+        /* 🚨 게임 오버 연출 시 화면 흔들림 & 글리치 CSS 애니메이션 */
         @keyframes gameOverScreenShake {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            20% { transform: translate(-8px, 6px) rotate(-1deg); }
-            40% { transform: translate(8px, -5px) rotate(1deg); }
-            60% { transform: translate(-6px, -4px) rotate(-0.5deg); }
-            80% { transform: translate(4px, 4px) rotate(0.5deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
+            0% { transform: translate(0, 0) rotate(0deg); filter: hue-rotate(0deg) contrast(100%); }
+            15% { transform: translate(-10px, 8px) rotate(-1.5deg); filter: hue-rotate(90deg) contrast(150%); }
+            30% { transform: translate(10px, -6px) rotate(1.5deg); filter: hue-rotate(180deg) contrast(200%); }
+            45% { transform: translate(-8px, -5px) rotate(-1deg); }
+            60% { transform: translate(6px, 6px) rotate(1deg); }
+            75% { transform: translate(-4px, 2px) rotate(-0.5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); filter: none; }
         }
 
         .game-over-shake {
-            animation: gameOverScreenShake 0.5s ease-in-out;
+            animation: gameOverScreenShake 0.6s cubic-bezier(.36,.07,.19,.97) both;
         }
 
+        /* 게임 오버 모달 스무스 페이드인 연출 */
         @keyframes modalPopIn {
-            from { opacity: 0; transform: scale(0.85) translateY(15px); }
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .modal-animated {
-            animation: modalPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: modalPopIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
@@ -84,7 +80,7 @@
     <canvas id="game-canvas"></canvas>
 
     <!-- Start Overlay Screen -->
-    <div id="modal-start" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div id="modal-start" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
         <div class="max-w-md w-full bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
             <div class="absolute -top-12 -left-12 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl"></div>
             <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-blue-600/20 rounded-full blur-2xl"></div>
@@ -97,21 +93,25 @@
                 지각 위기! 킥보드 탈출
             </h1>
             <p class="text-xs sm:text-sm text-slate-300 font-semibold mb-6">
-                네비게이션을 따라서 90초 내로 학교 정문까지 무사히 도달하세요!
+                네비게이션을 따라서 꺾어가며 90초 내로 학교 정문까지 무사히 도달하세요!
             </p>
 
             <div class="bg-slate-800/80 rounded-xl p-4 text-left text-xs text-slate-300 space-y-2 mb-6 border border-slate-700">
                 <div class="flex items-center gap-2">
                     <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded font-mono font-bold">조작법</span>
-                    <span>하단 버튼 / WASD / 터치 드래그로 화면 회전</span>
+                    <span>W/S: 가속/브레이크, A/D: 핸들 회전, 마우스 드래그: 시점 회전</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="px-2 py-0.5 bg-green-500/20 text-green-400 rounded font-mono font-bold">📱 AI 전화</span>
-                    <span>인도 진입 후 수락! 핑계 답장 성공 시 +15초!</span>
+                    <span>인도 진입 후 수락! 답장 성공 시 +15초 시간 추가! (3글자 오타 허용)</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded font-mono font-bold">🚨 인도/건물</span>
-                    <span>인도 5초 질주 시 경찰 단속, 건물 충돌 주의!</span>
+                    <span>인도 5초 질주 시 경찰 단속, 건물 55km/h 충돌 시 사망 오버!</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded font-mono font-bold">🚧 장애물 주의</span>
+                    <span>라바콘(감속), 보행자(즉시패배), 웅덩이(조작 난항) 회피!</span>
                 </div>
             </div>
 
@@ -122,125 +122,127 @@
     </div>
 
     <!-- HUD Overlay -->
-    <div id="hud-layer" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-6">
+    <div id="hud-layer" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-4 sm:p-6">
         <!-- Top Bar -->
         <div class="flex items-start justify-between w-full">
-            <div class="glass-panel p-2.5 sm:p-4 rounded-2xl flex items-center gap-2.5 sm:gap-4 text-white">
+            <div class="glass-panel p-3 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-4 text-white">
                 <div class="flex flex-col">
-                    <span class="text-[9px] sm:text-xs text-cyan-400 font-bold uppercase tracking-wider">학교까지</span>
-                    <span class="text-lg sm:text-3xl font-black font-mono"><span id="hud-distance">15.0</span> <span class="text-[10px] sm:text-xs">km</span></span>
+                    <span class="text-[10px] sm:text-xs text-cyan-400 font-bold uppercase tracking-wider">학교까지</span>
+                    <span class="text-xl sm:text-3xl font-black font-mono"><span id="hud-distance">15.0</span> <span class="text-xs">km</span></span>
                 </div>
-                <div class="h-6 sm:h-8 w-[1px] bg-white/20"></div>
+                <div class="h-8 w-[1px] bg-white/20"></div>
                 <div class="flex flex-col">
-                    <span class="text-[9px] sm:text-xs text-yellow-400 font-bold uppercase tracking-wider">현재 속도</span>
-                    <span class="text-lg sm:text-3xl font-black font-mono"><span id="hud-speed">0</span> <span class="text-[10px] sm:text-xs">km/h</span></span>
+                    <span class="text-[10px] sm:text-xs text-yellow-400 font-bold uppercase tracking-wider">현재 속도</span>
+                    <span class="text-xl sm:text-3xl font-black font-mono"><span id="hud-speed">0</span> <span class="text-xs">km/h</span></span>
                 </div>
             </div>
 
-            <!-- Center 90s Timer HUD -->
-            <div class="glass-panel px-3 py-1.5 sm:px-6 sm:py-3 rounded-2xl flex flex-col items-center border-2 border-red-500/50 shadow-lg shadow-red-500/20 relative" id="timer-hud-panel">
-                <span class="text-[9px] sm:text-xs font-bold text-red-400 tracking-widest uppercase">⏰ 남은 시간</span>
-                <span class="text-xl sm:text-4xl font-black font-mono text-red-500 animate-pulse" id="hud-timer">90.0<span class="text-xs">s</span></span>
+            <!-- Center 120s Timer HUD -->
+            <div class="glass-panel px-4 py-2 sm:px-6 sm:py-3 rounded-2xl flex flex-col items-center border-2 border-red-500/50 shadow-lg shadow-red-500/20 relative" id="timer-hud-panel">
+                <span class="text-[10px] sm:text-xs font-bold text-red-400 tracking-widest uppercase">⏰ 8시 58분 30초 (남은 시간)</span>
+                <span class="text-2xl sm:text-4xl font-black font-mono text-red-500 animate-pulse" id="hud-timer">90.0<span class="text-xs">s</span></span>
+                <!-- +15s 보상 연출 알림 팝업 -->
                 <div id="time-bonus-popup" class="hidden absolute -bottom-6 bg-emerald-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full shadow-lg border border-emerald-300 animate-bounce">
                     +15s 추가! 🎁
                 </div>
             </div>
 
             <!-- MiniMap GPS Canvas -->
-            <div class="glass-panel p-1.5 sm:p-2 rounded-2xl flex flex-col items-center">
-                <span class="text-[8px] sm:text-[9px] font-bold text-slate-300 mb-0.5">네비게이션</span>
-                <canvas id="minimap" width="65" height="65" class="rounded-xl border border-slate-600/50 bg-slate-900 sm:w-20 sm:h-20"></canvas>
+            <div class="glass-panel p-2 rounded-2xl flex flex-col items-center">
+                <span class="text-[9px] font-bold text-slate-300 mb-1" id="navi-guide">직진 안내</span>
+                <canvas id="minimap" width="90" height="90" class="rounded-xl border border-slate-600/50 bg-slate-900"></canvas>
             </div>
         </div>
 
         <!-- 💦 웅덩이 미끄러짐 경고 알림 -->
-        <div id="puddle-warning" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-cyan-500/90 text-slate-950 font-black text-xs sm:text-sm px-4 py-1.5 rounded-full border border-cyan-200 shadow-xl animate-bounce z-20">
+        <div id="puddle-warning" class="hidden absolute top-24 left-1/2 -translate-x-1/2 bg-cyan-500/90 text-slate-950 font-black text-sm px-4 py-1.5 rounded-full border border-cyan-200 shadow-xl animate-bounce z-20">
             💦 빗물 웅덩이! 조작 방향 반전!
         </div>
 
         <!-- Touch Controls for Mobile/On-Screen -->
-        <div class="pointer-events-auto flex justify-between items-end w-full mb-1 sm:mb-4 px-1 pb-safe">
-            <div class="flex gap-2 sm:gap-3">
-                <button id="btn-left" class="w-14 h-14 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-2xl sm:text-3xl shadow-2xl active:scale-90 transition-all select-none">
+        <div class="pointer-events-auto flex justify-between items-end w-full mb-2 sm:mb-4 px-2 pb-safe">
+            <div class="flex gap-3">
+                <button id="btn-left" class="w-16 h-16 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-3xl border-2 border-white/30 flex items-center justify-center text-3xl shadow-2xl active:scale-90 transition-all select-none">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <button id="btn-right" class="w-14 h-14 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-2xl sm:text-3xl shadow-2xl active:scale-90 transition-all select-none">
+                <button id="btn-right" class="w-16 h-16 sm:w-20 sm:h-20 bg-slate-800/90 active:bg-cyan-600 text-white rounded-3xl border-2 border-white/30 flex items-center justify-center text-3xl shadow-2xl active:scale-90 transition-all select-none">
                     <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
-            <div class="flex gap-2 sm:gap-3">
-                <button id="btn-brake" class="w-14 h-14 sm:w-20 sm:h-20 bg-red-600/90 active:bg-red-700 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-sm sm:text-lg font-black shadow-2xl active:scale-90 transition-all select-none">
+            <div class="flex gap-3">
+                <button id="btn-brake" class="w-16 h-16 sm:w-20 sm:h-20 bg-red-600/90 active:bg-red-700 text-white rounded-3xl border-2 border-white/30 flex items-center justify-center text-lg font-black shadow-2xl active:scale-90 transition-all select-none">
                     STOP
                 </button>
-                <button id="btn-accel" class="w-16 h-16 sm:w-24 sm:h-24 bg-emerald-500/90 active:bg-emerald-600 text-white rounded-2xl sm:rounded-3xl border-2 border-white/30 flex items-center justify-center text-xl sm:text-2xl font-black shadow-2xl active:scale-90 transition-all select-none">
+                <button id="btn-accel" class="w-20 h-20 sm:w-24 sm:h-24 bg-emerald-500/90 active:bg-emerald-600 text-white rounded-3xl border-2 border-white/30 flex items-center justify-center text-2xl font-black shadow-2xl active:scale-90 transition-all select-none">
                     GO!
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Smartphone Call UI Container -->
-    <div id="phone-container" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[900] w-[92vw] max-w-sm bg-slate-900/95 border-4 border-slate-700 rounded-[32px] p-4 text-white phone-shadow transition-all">
-        <div class="flex justify-center mb-2">
-            <div class="w-16 h-1.5 bg-slate-700 rounded-full"></div>
+    <!-- Fixed Smartphone Call UI Container -->
+    <div id="phone-container" class="hidden fixed bottom-4 right-4 z-50 w-[90vw] max-w-sm bg-slate-900/95 border-4 border-slate-700 rounded-[36px] p-4 sm:p-5 text-white phone-shadow transition-all transform duration-300">
+        <div class="flex justify-center mb-3">
+            <div class="w-20 h-2 bg-slate-700 rounded-full"></div>
         </div>
 
-        <div id="phone-screen-incoming" class="flex flex-col items-center py-3 text-center">
-            <div class="relative mb-2">
-                <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-red-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+        <div id="phone-screen-incoming" class="flex flex-col items-center py-4 text-center">
+            <div class="relative mb-3">
+                <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-red-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
                     👨‍🏫
                 </div>
-                <div class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">!</div>
+                <div class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">!</div>
             </div>
-            <h3 class="font-extrabold text-base text-slate-100">담임 선생님</h3>
-            <p class="text-xs text-red-400 font-semibold mb-1 animate-pulse">전화가 오고 있습니다...</p>
-            <p class="text-[11px] text-slate-400 mb-1">제한시간: <span id="phone-timer" class="text-red-400 font-extrabold font-mono text-xs">10.0</span>초</p>
-            <p id="phone-location-warning" class="text-[10px] text-yellow-400 font-bold mb-2 hidden">⚠️ 차도에서는 전화를 받을 수 없습니다! 인도로 이동하세요!</p>
+            <h3 class="font-extrabold text-lg text-slate-100">담임 선생님</h3>
+            <p class="text-sm text-red-400 font-semibold mb-2 animate-pulse">전화가 오고 있습니다...</p>
+            <p class="text-xs text-slate-400 mb-1">제한시간: <span id="phone-timer" class="text-red-400 font-extrabold font-mono text-sm">10.0</span>초</p>
+            <p id="phone-location-warning" class="text-[11px] text-yellow-400 font-bold mb-3 hidden">⚠️ 차도에서는 전화를 받을 수 없습니다! 인도로 이동하세요!</p>
 
-            <div id="slider-track" class="relative w-full h-12 bg-slate-800 rounded-full border border-slate-700 p-1 flex items-center overflow-hidden">
-                <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-300 pointer-events-none">
+            <div id="slider-track" class="relative w-full h-14 bg-slate-800 rounded-full border border-slate-700 p-1 flex items-center overflow-hidden">
+                <div class="absolute inset-0 flex items-center justify-center text-xs sm:text-sm font-bold text-slate-300 pointer-events-none">
                     수락하려면 오른쪽 밀기 <span>&gt;&gt;&gt;</span>
                 </div>
-                <div id="slider-handle" class="relative z-10 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white cursor-pointer shadow-md transition-transform">
-                    <i class="fa-solid fa-phone text-sm"></i>
+                <div id="slider-handle" class="relative z-10 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white cursor-pointer shadow-md transition-transform">
+                    <i class="fa-solid fa-phone text-base"></i>
                 </div>
             </div>
         </div>
 
-        <div id="phone-screen-active" class="hidden flex flex-col h-80">
+        <div id="phone-screen-active" class="hidden flex flex-col h-88">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
                 <div class="flex items-center gap-2">
-                    <span class="text-xl">👨‍🏫</span>
+                    <span class="text-2xl">👨‍🏫</span>
                     <div>
-                        <div class="text-xs font-extrabold">담임 선생님 (AI)</div>
-                        <div class="text-[10px] text-green-400 font-semibold">통화 중...</div>
+                        <div class="text-sm font-extrabold">담임 선생님 (AI)</div>
+                        <div class="text-xs text-green-400 font-semibold" id="call-status-tag">통화 중...</div>
                     </div>
                 </div>
                 <div class="flex flex-col items-end">
                     <div class="text-xs font-mono font-extrabold text-red-400 bg-red-950/60 px-2 py-0.5 rounded-md border border-red-500/40 animate-pulse">
                         ⏱️ <span id="reply-timer-display">18.0</span>s
                     </div>
+                    <div class="text-[10px] font-mono text-cyan-400 mt-0.5" id="ai-typing-indicator" style="display:none;">생각 중...</div>
                 </div>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto space-y-2 p-1 text-xs mb-2"></div>
+            <div id="chat-box" class="flex-1 overflow-y-auto space-y-2.5 p-1 text-xs sm:text-sm mb-2"></div>
 
-            <div id="hint-box" class="bg-slate-800/90 border border-cyan-500/40 rounded-xl p-2 text-[11px] text-cyan-300 font-semibold mb-2">
-                💡 <span class="font-bold text-yellow-300">답안:</span> <span id="hint-text" class="text-white font-bold underline">"죄송합니다 곧 도착해요"</span>
+            <div id="hint-box" class="bg-slate-800/90 border-2 border-cyan-500/40 rounded-xl p-2.5 text-xs text-cyan-300 font-semibold mb-2">
+                💡 <span class="font-bold text-yellow-300">예시 답안:</span> <span id="hint-text" class="text-white font-bold underline">"죄송합니다 곧 도착해요"</span>
             </div>
 
             <form id="chat-form" class="flex gap-2 border-t border-slate-800 pt-2">
-                <input id="chat-input" type="text" placeholder="예시 답안 입력..." autocomplete="off" class="flex-1 bg-slate-800 text-xs text-white px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-500">
-                <button type="submit" id="btn-chat-send" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-2 rounded-xl font-extrabold transition-all">전송</button>
+                <input id="chat-input" type="text" placeholder="예시 답안 입력..." autocomplete="off" class="flex-1 bg-slate-800 text-xs sm:text-sm text-white px-3.5 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-500">
+                <button type="submit" id="btn-chat-send" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl font-extrabold transition-all">전송</button>
             </form>
         </div>
     </div>
 
     <!-- Game Over / Victory Modal -->
-    <div id="modal-end" class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
-        <div id="modal-end-content" class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-center shadow-2xl modal-animated">
-            <div id="end-icon" class="text-5xl mb-3">🚨</div>
-            <h2 id="end-title" class="text-2xl font-black text-white mb-2">게임 오버</h2>
+    <div id="modal-end" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div id="modal-end-content" class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 text-center shadow-2xl modal-animated">
+            <div id="end-icon" class="text-5xl mb-4">🚨</div>
+            <h2 id="end-title" class="text-2xl sm:text-3xl font-black text-white mb-2">게임 오버</h2>
             <p id="end-msg" class="text-xs sm:text-sm text-slate-300 mb-6">지각 처리되었습니다!</p>
             <button id="btn-retry" type="button" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold rounded-2xl text-base shadow-lg cursor-pointer active:scale-95 transition-all">
                 다시 시도하기
@@ -249,19 +251,31 @@
     </div>
 
     <script>
+        // --- GAME CONSTANTS & WAYPOINT ROUTE ---
         const TOTAL_DISTANCE = 15.0;
         let gameActive = false;
-        let isGameOverAnimating = false;
+        let isGameOverAnimating = false; // 게임 오버 연출 재생 중 플래그
         let gameOverCamAngle = 0;
         let distanceRemaining = TOTAL_DISTANCE;
         let currentSpeed = 0;
-        const MAX_SPEED = 120;
+        const MAX_SPEED = 120; // 최고 속도 120km/h로 증가
 
+        // 90 Seconds Match Timer & Sidewalk Timer (30초 단축 반영)
         let matchTimeRemaining = 90.0;
         let sidewalkRideTimer = 0.0;
 
+        // Curved Winding Route Checkpoints
+        const waypoints = [
+            { x: 0, z: -350, type: 'left', text: '350m 앞 교차로 좌회전!' },
+            { x: -400, z: -350, type: 'right', text: '400m 앞 교차로 우회전!' },
+            { x: -400, z: -800, type: 'left', text: '450m 앞 교차로 좌회전!' },
+            { x: -850, z: -800, type: 'right', text: '450m 앞 교차로 우회전!' },
+            { x: -850, z: -1400, type: 'school', text: '직진하여 학교 정문 골인!' }
+        ];
+        let currentWaypointIdx = 0;
         const schoolGatePos = { x: -850, z: -1400 };
 
+        // World Positioning & Controls
         let playerX = 0;
         let playerZ = 0;
         let cameraLookYaw = 0;
@@ -274,12 +288,14 @@
 
         const keys = { w: false, s: false, a: false, d: false };
 
+        // Phone System Logic & AI Conversation History (거짓말 핑계 및 현실적인 대답 반응)
         let phoneActive = false;
         let phoneTimer = 10.0;
         let phoneActiveTimer = 18.0;
         let phoneTurn = 1;
         let phoneCooldownTimer = 5.0;
 
+        // 원본 예시 답안 목록 (사용 시 제거 및 중복 방지)
         const initialHints = [
             { 
                 hint1: "할머니가 짐을 옮겨달라 하셔서요", 
@@ -326,6 +342,7 @@
         let playerGroup, handlebarMesh;
         let buildingBounds = [];
 
+        // Obstacle arrays
         let obstaclesCones = [];
         let obstaclesPedestrians = [];
         let obstaclesPuddles = [];
@@ -338,13 +355,6 @@
             { p1: {x: -400, z: -800}, p2: {x: -850, z: -800} },
             { p1: {x: -850, z: -800}, p2: {x: -850, z: -1400} }
         ];
-
-        function getViewportSize() {
-            return {
-                w: window.innerWidth || document.documentElement.clientWidth || 360,
-                h: window.innerHeight || document.documentElement.clientHeight || 640
-            };
-        }
 
         function isOnSidewalk(px, pz) {
             const dist = getDistanceToRoads(px, pz);
@@ -366,6 +376,7 @@
             return minDist;
         }
 
+        // Levenshtein Distance (최대 3글자 오타 허용 알고리즘)
         function levenshteinDistance(a, b) {
             const matrix = [];
             for (let i = 0; i <= b.length; i++) matrix[i] = [i];
@@ -389,40 +400,28 @@
 
         function initThree() {
             const canvas = document.getElementById('game-canvas');
-            const size = getViewportSize();
-
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x7dd3fc);
             scene.fog = new THREE.FogExp2(0x7dd3fc, 0.002);
 
-            const isMobile = size.w < size.h;
-            const defaultFov = isMobile ? 80 : 70;
-            camera = new THREE.PerspectiveCamera(defaultFov, size.w / size.h, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-            // Create WebGL Renderer safely across mobile browsers
+            // 모바일 WebGL 렌더링 호환성 극대화 설정
             try {
                 renderer = new THREE.WebGLRenderer({ 
                     canvas: canvas, 
-                    antialias: false,
-                    alpha: false,
-                    precision: 'lowp',
-                    powerPreference: 'high-performance'
+                    antialias: true,
+                    powerPreference: "high-performance",
+                    failIfMajorPerformanceCaveat: false
                 });
             } catch (e) {
-                try {
-                    const ctx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                    renderer = new THREE.WebGLRenderer({ canvas: canvas, context: ctx });
-                } catch (err) {
-                    console.error("WebGL error", err);
-                }
+                renderer = new THREE.WebGLRenderer({ canvas: canvas });
             }
 
-            if (renderer) {
-                renderer.setSize(size.w, size.h, false);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-            }
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
 
             const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.0);
@@ -432,15 +431,13 @@
             playerGroup = new THREE.Group();
             scene.add(playerGroup);
             playerGroup.add(camera);
-            camera.position.set(0, 1.15, 0);
+            camera.position.set(0, 1.15, 0); // 킥보드 조종석 시점 높이를 낮춤
 
             createDetailedHandlebar();
             createComplexRoadNetwork();
             spawnDynamicObstacles();
 
             window.addEventListener('resize', onWindowResize);
-            window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 200));
-
             setupPointerLook();
             setupPhoneSwipe();
             setupChatForm();
@@ -472,6 +469,7 @@
             window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
             window.addEventListener('mouseup', () => { isPointerDragging = false; });
 
+            // 모바일 터치 시점 회전 지원
             canvas.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 1) {
                     handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
@@ -492,18 +490,19 @@
             const blackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
             const metallicMat = new THREE.MeshStandardMaterial({ color: 0xc084fc, metalness: 0.8, roughness: 0.2 });
 
-            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 8), blackMat);
+            // 핸들 기둥 및 바 높이를 획기적으로 낮춰 시야 확보
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 12), blackMat);
             stem.position.set(0, -0.55, -0.55);
             stem.rotation.x = Math.PI / 8;
             handlebarMesh.add(stem);
 
-            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.75, 8), metallicMat);
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.75, 12), metallicMat);
             bar.rotation.z = Math.PI / 2;
             bar.position.set(0, -0.22, -0.65);
             handlebarMesh.add(bar);
 
             [-0.33, 0.33].forEach(xPos => {
-                const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.12, 8), blackMat);
+                const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.12, 12), blackMat);
                 grip.rotation.z = Math.PI / 2;
                 grip.position.set(xPos, -0.22, -0.65);
                 handlebarMesh.add(grip);
@@ -520,16 +519,22 @@
             handlebarMesh.add(displayScreen);
 
             [-0.36, 0.36].forEach(side => {
-                const mirrorStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.15, 6), metallicMat);
+                const mirrorStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.15, 8), metallicMat);
                 mirrorStem.position.set(side, -0.12, -0.65);
                 mirrorStem.rotation.z = side * -Math.PI / 6;
                 handlebarMesh.add(mirrorStem);
 
-                const mirrorGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 8), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
+                const mirrorGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 16), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
                 mirrorGlass.rotation.x = Math.PI / 2;
                 mirrorGlass.position.set(side * 1.15, -0.07, -0.65);
                 handlebarMesh.add(mirrorGlass);
             });
+
+            const headlightBeam = new THREE.SpotLight(0xffffff, 2.5, 30, Math.PI / 6, 0.3);
+            headlightBeam.position.set(0, -0.25, -0.7);
+            headlightBeam.target.position.set(0, -1.0, -10);
+            handlebarMesh.add(headlightBeam);
+            handlebarMesh.add(headlightBeam.target);
 
             camera.add(handlebarMesh);
         }
@@ -550,9 +555,11 @@
                 {x: -850, z: -800}
             ];
             
+            // 코너링(교차로) 구역을 인도보다 확연히 높은 Y=0.45 위치에서 일반 도로 색상(0x27272a)으로 덮는 메쉬
             const cornerOverlayMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 });
             
             intersections.forEach(pos => {
+                // 인도 높이(0.3)보다 확연히 높은 0.45에 배치하여 인도가 도로 안쪽으로 튀어나오는 현상을 확실히 덮음
                 const cornerOverlay = new THREE.Mesh(new THREE.PlaneGeometry(18.0, 18.0), cornerOverlayMat);
                 cornerOverlay.rotation.x = -Math.PI / 2;
                 cornerOverlay.position.set(pos.x, 0.45, pos.z);
@@ -612,6 +619,7 @@
             scene.add(schoolGroup);
         }
 
+        // Spawn Cones, Pedestrians, and Water Puddles along the track
         function spawnDynamicObstacles() {
             obstaclesCones = [];
             obstaclesPedestrians = [];
@@ -631,6 +639,7 @@
                     const baseX = seg.p1.x + (seg.p2.x - seg.p1.x) * ratio;
                     const baseZ = seg.p1.z + (seg.p2.z - seg.p1.z) * ratio;
 
+                    // 1. Traffic Cones
                     const coneOffset = (Math.random() - 0.5) * 10;
                     const coneX = isHoriz ? baseX : baseX + coneOffset;
                     const coneZ = isHoriz ? baseZ + coneOffset : baseZ;
@@ -640,6 +649,7 @@
                     scene.add(cone);
                     obstaclesCones.push(cone);
 
+                    // 2. Pedestrians (Smombies) on sidewalks/crosswalks
                     if (i % 2 === 0) {
                         const pedGroup = new THREE.Group();
                         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), pedMat);
@@ -663,6 +673,7 @@
                         });
                     }
 
+                    // 3. Water Puddles
                     if (i % 3 === 0) {
                         const puddle = new THREE.Mesh(new THREE.CircleGeometry(3.2, 16), puddleMat);
                         puddle.rotation.x = -Math.PI / 2;
@@ -710,6 +721,7 @@
             };
 
             [-1, 1].forEach(side => {
+                // 인도 메쉬
                 const swGeo = isHorizontal 
                     ? new THREE.BoxGeometry(width, 0.3, 3.8) 
                     : new THREE.BoxGeometry(3.8, 0.3, length);
@@ -727,20 +739,30 @@
                     const posX = !isHorizontal ? x + treeOffset : x + d * 35;
                     const posZ = !isHorizontal ? z + d * 35 : z + treeOffset;
 
+                    // 교차로 코너 안쪽 구간에는 가로수/벤치가 도로를 가리지 않도록 처리
                     if (isNearIntersection(posX, posZ)) continue;
 
                     const treeGroup = new THREE.Group();
                     
-                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, 3.2, 8), treeTrunkMat);
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, 3.2, 10), treeTrunkMat);
                     trunk.position.y = 1.6;
                     treeGroup.add(trunk);
 
-                    const foliageBottom = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.0, 8), treeLeavesMat1);
+                    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.2, 6), treeTrunkMat);
+                    branch.position.set(0.2, 2.4, 0);
+                    branch.rotation.z = -Math.PI / 4;
+                    treeGroup.add(branch);
+
+                    const foliageBottom = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6), treeLeavesMat1);
                     foliageBottom.position.y = 3.6;
                     treeGroup.add(foliageBottom);
 
-                    const foliageTop = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.2, 8), treeLeavesMat2);
-                    foliageTop.position.set(0, 4.8, 0);
+                    const foliageMid = new THREE.Mesh(new THREE.DodecahedronGeometry(1.3), treeLeavesMat2);
+                    foliageMid.position.set(0.2, 4.6, 0.1);
+                    treeGroup.add(foliageMid);
+
+                    const foliageTop = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9), treeLeavesMat1);
+                    foliageTop.position.set(-0.1, 5.5, -0.1);
                     treeGroup.add(foliageTop);
 
                     treeGroup.position.set(posX, 0.15, posZ);
@@ -823,8 +845,8 @@
             window.addEventListener('mousemove', onMove);
             window.addEventListener('mouseup', onEnd);
 
-            handle.addEventListener('touchstart', onStart, { passive: true });
-            window.addEventListener('touchmove', onMove, { passive: true });
+            handle.addEventListener('touchstart', onStart);
+            window.addEventListener('touchmove', onMove);
             window.addEventListener('touchend', onEnd);
         }
 
@@ -833,10 +855,12 @@
             phoneActive = true;
             phoneTimer = 10.0;
 
+            // 남은 예시 답안 중 랜덤 선택 후 목록에서 제거 (중복 방지)
             if (remainingHints.length > 0) {
                 const randomIndex = Math.floor(Math.random() * remainingHints.length);
                 currentHintSet = remainingHints.splice(randomIndex, 1)[0];
             } else {
+                // 모두 사용 시 "죄송합니다 빨리 가겠습니다" 기본 핑계로 대체
                 currentHintSet = defaultFallbackHint;
             }
 
@@ -896,6 +920,7 @@
                 addChatMessage('user', text);
                 input.value = '';
 
+                // 3글자 레벤슈타인 오타 허용 알고리즘 검증
                 const expected1 = currentHintSet.hint1.replace(/\s+/g, '');
                 const userTyped = text.replace(/\s+/g, '');
                 const dist1 = levenshteinDistance(userTyped, expected1);
@@ -908,17 +933,21 @@
                         phoneTurn = 2;
                         phoneActiveTimer = 18.0;
 
+                        // +15초 등교 시간 보상 연출
                         matchTimeRemaining += 15.0;
                         showTimeBonusPopup();
 
+                        document.getElementById('ai-typing-indicator').style.display = 'block';
                         setTimeout(() => {
+                            document.getElementById('ai-typing-indicator').style.display = 'none';
+                            // 거짓말 핑계에 맞춘 현실적인 담임 선생님 답변 출력
                             addChatMessage('teacher', `${currentHintSet.reply} (통화 종료)`);
                             document.getElementById('hint-box').classList.add('hidden');
 
                             setTimeout(() => {
                                 closePhoneCall();
                             }, 2500);
-                        }, 800);
+                        }, 1000);
                     } else {
                         addChatMessage('teacher', `음? 거짓말인지 뭔지 알아들을 수가 없구나! 제대로 말해봐라!`);
                     }
@@ -934,7 +963,7 @@
 
         function closePhoneCall() {
             phoneActive = false;
-            phoneCooldownTimer = 15.0;
+            phoneCooldownTimer = 15.0; // 전화 통화 종료 후 쿨타임을 기존 20초에서 15초로 5초 단축
             document.getElementById('phone-container').classList.add('hidden');
             document.getElementById('hint-box').classList.remove('hidden');
         }
@@ -949,11 +978,13 @@
         }
 
         function updateGame(deltaTime) {
+            // 게임 오버 연출 재생 중일 때 3D 시점 궤도 회전 애니메이션 처리
             if (isGameOverAnimating) {
                 gameOverCamAngle += deltaTime * 1.5;
                 const camRadius = 8.0;
                 const camHeight = 3.5;
 
+                // 킥보드 주변을 시네마틱하게 회전
                 camera.position.x = playerGroup.position.x + Math.sin(gameOverCamAngle) * camRadius;
                 camera.position.z = playerGroup.position.z + Math.cos(gameOverCamAngle) * camRadius;
                 camera.position.y = camHeight;
@@ -963,6 +994,7 @@
 
             if (!gameActive) return;
 
+            // 120s Match Countdown Timer
             matchTimeRemaining -= deltaTime;
             if (matchTimeRemaining <= 0) {
                 matchTimeRemaining = 0;
@@ -971,6 +1003,8 @@
             }
             document.getElementById('hud-timer').innerHTML = `${matchTimeRemaining.toFixed(1)}<span class="text-xs">s</span>`;
 
+            // Sidewalk Riding Rule (5 sec continuous movement -> Arrested Game Over)
+            // 멈춰있는 상태(5km/h 미만)에서는 단속 타이머가 증가하지 않고 오히려 줄어들도록 수정
             const currentlyOnSidewalk = isOnSidewalk(playerX, playerZ);
             if (currentlyOnSidewalk && currentSpeed >= 5) {
                 sidewalkRideTimer += deltaTime;
@@ -982,6 +1016,7 @@
                 sidewalkRideTimer = Math.max(0, sidewalkRideTimer - deltaTime * 2.0);
             }
 
+            // 빗물 웅덩이 미끄러짐 타이머 및 경고 알림
             if (slipTimer > 0) {
                 slipTimer -= deltaTime;
                 document.getElementById('puddle-warning').classList.remove('hidden');
@@ -989,6 +1024,7 @@
                 document.getElementById('puddle-warning').classList.add('hidden');
             }
 
+            // 부드럽고 가파른 고속 가감속 (가속도 강화)
             if (keys.w) {
                 currentSpeed = Math.min(MAX_SPEED, currentSpeed + 55 * deltaTime);
             } else if (keys.s) {
@@ -997,12 +1033,12 @@
                 currentSpeed = Math.max(0, currentSpeed - 20 * deltaTime);
             }
 
-            const size = getViewportSize();
-            const baseFov = size.w < size.h ? 80 : 70;
-            const targetFOV = baseFov + (currentSpeed / MAX_SPEED) * 20;
+            // 속도에 따른 다이나믹 FOV (화면 광각 연출로 속도감 극대화)
+            const targetFOV = 70 + (currentSpeed / MAX_SPEED) * 25; // 최대 95도까지 확장의 속도감
             camera.fov += (targetFOV - camera.fov) * 0.1;
             camera.updateProjectionMatrix();
 
+            // 부드럽고 민첩한 조향 로직 (방향 전환성 대폭 향상)
             let turnSpeed = (1.4 + (currentSpeed / MAX_SPEED) * 0.8) * deltaTime;
             let moveDir = 0;
 
@@ -1011,14 +1047,17 @@
 
             cameraLookYaw += moveDir * turnSpeed;
 
+            // 핸들/카메라 기울임 연출 (자연스러운 뱅킹)
             const targetLean = -moveDir * (0.08 + (currentSpeed / MAX_SPEED) * 0.12);
             scooterLeanAngle += (targetLean - scooterLeanAngle) * 0.15;
             handlebarMesh.rotation.z = scooterLeanAngle;
 
+            // Position updates
             const moveDist = (currentSpeed * 1000 / 3600) * deltaTime;
             const nextX = playerX - Math.sin(cameraLookYaw) * moveDist;
             const nextZ = playerZ - Math.cos(cameraLookYaw) * moveDist;
 
+            // 55km/h 이상 고속 건물 충돌 시 게임 오버 판정
             if (checkBuildingCollisions(nextX, nextZ)) {
                 if (currentSpeed >= 55) {
                     gameOver('💥 55km/h 이상 고속으로 건물에 충돌했습니다! (킥보드 파손)');
@@ -1034,6 +1073,7 @@
             playerGroup.position.set(playerX, 0, playerZ);
             playerGroup.rotation.y = cameraLookYaw;
 
+            // 1. Traffic Cones
             obstaclesCones.forEach(cone => {
                 const dist = Math.hypot(playerX - cone.position.x, playerZ - cone.position.z);
                 if (dist < 1.0) {
@@ -1042,6 +1082,7 @@
                 }
             });
 
+            // 2. Pedestrians
             obstaclesPedestrians.forEach(ped => {
                 if (ped.isHoriz) {
                     ped.mesh.position.z += ped.dir * 1.2 * deltaTime;
@@ -1058,6 +1099,7 @@
                 }
             });
 
+            // 3. Water Puddles
             obstaclesPuddles.forEach(puddle => {
                 const dist = Math.hypot(playerX - puddle.position.x, playerZ - puddle.position.z);
                 if (dist < 2.5) {
@@ -1065,6 +1107,7 @@
                 }
             });
 
+            // Waypoints & Goal Check
             const distToGate = Math.hypot(playerX - schoolGatePos.x, playerZ - schoolGatePos.z);
             distanceRemaining = (distToGate / 100).toFixed(1);
 
@@ -1073,6 +1116,7 @@
                 return;
             }
 
+            // Phone System Timers
             if (phoneCooldownTimer > 0) phoneCooldownTimer -= deltaTime;
             if (!phoneActive && phoneCooldownTimer <= 0 && Math.random() < 0.008) {
                 triggerPhoneCall();
@@ -1096,6 +1140,7 @@
                 }
             }
 
+            // Update UI & Minimap
             document.getElementById('hud-speed').innerText = Math.round(currentSpeed);
             document.getElementById('hud-distance').innerText = distanceRemaining;
             renderMinimap();
@@ -1110,7 +1155,7 @@
             ctx.translate(canvas.width / 2, canvas.height / 2);
 
             ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 8;
+            ctx.lineWidth = 10;
             ctx.lineCap = 'round';
             ctx.beginPath();
 
@@ -1125,16 +1170,18 @@
             });
             ctx.stroke();
 
+            // Goal Icon
             const schoolX = (schoolGatePos.x - playerX) * 0.08;
             const schoolZ = (schoolGatePos.z - playerZ) * 0.08;
             ctx.fillStyle = '#22c55e';
             ctx.beginPath();
-            ctx.arc(schoolX, schoolZ, 5, 0, Math.PI * 2);
+            ctx.arc(schoolX, schoolZ, 6, 0, Math.PI * 2);
             ctx.fill();
 
+            // Player Icon
             ctx.fillStyle = '#ef4444';
             ctx.beginPath();
-            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.restore();
@@ -1144,15 +1191,18 @@
             if (!gameActive || isGameOverAnimating) return;
             gameActive = false;
             isGameOverAnimating = true;
-            closePhoneCall();
+            closePhoneCall(); // 게임 오버 시 전화 UI 자동 종료
 
+            // 1. 화면 진동 & 글리치 연출 적용
             const canvas = document.getElementById('game-canvas');
             canvas.classList.add('game-over-shake');
-            setTimeout(() => canvas.classList.remove('game-over-shake'), 500);
+            setTimeout(() => canvas.classList.remove('game-over-shake'), 600);
 
+            // 2. 3D 카메라 탈착 (시네마틱 궤도 회전 준비)
             scene.attach(camera);
             gameOverCamAngle = cameraLookYaw;
 
+            // 3. 1.2초간 시네마틱 카메라 회전 연출 후 모달 창 표시
             setTimeout(() => {
                 document.getElementById('end-icon').innerText = '🚨';
                 document.getElementById('end-title').innerText = '게임 오버';
@@ -1160,11 +1210,11 @@
                 
                 const endContent = document.getElementById('modal-end-content');
                 endContent.classList.remove('modal-animated');
-                void endContent.offsetWidth;
+                void endContent.offsetWidth; // trigger reflow
                 endContent.classList.add('modal-animated');
 
                 document.getElementById('modal-end').classList.remove('hidden');
-            }, 800);
+            }, 1000);
         }
 
         function gameWin() {
@@ -1195,14 +1245,14 @@
             cameraLookPitch = 0;
             phoneCooldownTimer = 5.0;
 
+            // 새로 게임 시작 시 핑계 목록 다시 초기화
             remainingHints = [...initialHints];
 
+            // 카메라를 다시 플레이어 그룹에 붙이고 기본 위치로 복원
             playerGroup.add(camera);
             camera.position.set(0, 1.15, 0);
             camera.rotation.set(0, 0, 0);
-
-            const size = getViewportSize();
-            camera.fov = size.w < size.h ? 80 : 70;
+            camera.fov = 70;
             camera.updateProjectionMatrix();
 
             closePhoneCall();
@@ -1212,18 +1262,12 @@
         }
 
         function onWindowResize() {
-            const size = getViewportSize();
-            if (camera && renderer) {
-                camera.aspect = size.w / size.h;
-                camera.fov = size.w < size.h ? 80 : 70;
-                camera.updateProjectionMatrix();
-                renderer.setSize(size.w, size.h, false);
-            }
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        window.addEventListener('resize', onWindowResize);
-        window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 150));
-
+        // Keyboard & Button Event Handlers
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             if (keys.hasOwnProperty(key)) keys[key] = true;
@@ -1237,9 +1281,9 @@
         document.getElementById('btn-start-game').addEventListener('click', startGame);
         document.getElementById('btn-retry').addEventListener('click', startGame);
 
+        // Mobile On-Screen Buttons
         const bindTouchBtn = (id, key) => {
             const btn = document.getElementById(id);
-            if (!btn) return;
             const startPress = (e) => {
                 if (e.cancelable) e.preventDefault();
                 keys[key] = true;
@@ -1262,6 +1306,7 @@
         bindTouchBtn('btn-left', 'a');
         bindTouchBtn('btn-right', 'd');
 
+        // Animation Loop
         let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
@@ -1270,17 +1315,13 @@
             lastTime = now;
 
             updateGame(deltaTime);
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+            renderer.render(scene, camera);
         }
 
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                initThree();
-                animate();
-            }, 100);
-        });
+        window.onload = function() {
+            initThree();
+            animate();
+        };
     </script>
 </body>
 </html>
